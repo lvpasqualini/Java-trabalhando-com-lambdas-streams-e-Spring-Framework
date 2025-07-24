@@ -10,11 +10,9 @@ import org.springframework.format.datetime.DateFormatter;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Main {
     private final Scanner sc = new Scanner(System.in);
@@ -49,15 +47,18 @@ public class Main {
                         .flatMap(t -> t.episodios().stream())
                         .collect(Collectors.toList());
 
-                System.out.println("\nTop 5:\n");
-                dadosEpisodios.stream()
-                        .filter(e -> !e.avaliacao().equalsIgnoreCase("N/A"))
-                        .sorted(Comparator.comparing(DadosEpisodio::avaliacao).reversed())
-                        .limit(5)
-                        .forEach(System.out::println);
-
-                System.out.println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-
+//                System.out.println("\nTop 5:\n");
+//                dadosEpisodios.stream()
+//                        .filter(e -> !e.avaliacao().equalsIgnoreCase("N/A"))
+//                        //.peek(e -> System.out.println("Primeiro filtro(N/A) " + e))
+//                        .sorted(Comparator.comparing(DadosEpisodio::avaliacao).reversed())
+//                        //.peek(e -> System.out.println("Ordenacao " + e))
+//                        .limit(5)
+//                        //.peek(e -> System.out.println("Limite " + e))
+//                        .map(e-> e.titulo().toUpperCase())
+//                        //.peek(e -> System.out.println("Upper case " + e))
+//                        .forEach(System.out::println);
+//
                 List<Episodio> episodios = temporadas.stream()
                         .flatMap(t -> t.episodios().stream()
                                 .map( e -> new Episodio(t.numero(), e))
@@ -65,20 +66,49 @@ public class Main {
 
                 episodios.forEach(System.out::println);
 
-                System.out.println("A partir de que ano voce deseja ver os episodios?");
-                var ano = sc.nextInt();
-                sc.nextLine();
+                System.out.println("\nDigite um trecho do titulo do episodio: ");
+                var trechoTitulo = sc.nextLine();
+                Optional<Episodio> episodioBuscado = episodios.stream()
+                        .filter(e-> e.getTitulo().toUpperCase().contains(trechoTitulo.toUpperCase()))
+                        .findFirst();
 
-                DateTimeFormatter formatador = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                if(episodioBuscado.isPresent()) {
+                    System.out.println("Episodio encontrado!");
+                    System.out.println("Temporada: " + episodioBuscado.get().getTemporada() + "\nEpisodio: " + episodioBuscado.get().getNumeroEpisodio());
+                }else {
+                    System.out.println("Episodio nao encontrado!");
+                }
 
-                LocalDate dataBusca = LocalDate.of(ano,1,1);
-                episodios.stream()
-                        .filter( e-> e.getDataLancamento() != null && e.getDataLancamento().isAfter(dataBusca))
-                        .forEach(e -> System.out.println(
-                                "Temporada:" + e.getTemporada() +
-                                        "Episodio:" + e.getTitulo() +
-                                        "Data lancamento: " + e.getDataLancamento().format(formatador)
-                        ));
+//                System.out.println("A partir de que ano voce deseja ver os episodios?");
+//                var ano = sc.nextInt();
+//                sc.nextLine();
+//
+//                DateTimeFormatter formatador = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+//
+//                LocalDate dataBusca = LocalDate.of(ano,1,1);
+//                episodios.stream()
+//                        .filter( e-> e.getDataLancamento() != null && e.getDataLancamento().isAfter(dataBusca))
+//                        .forEach(e -> System.out.println(
+//                                "Temporada:" + e.getTemporada() +
+//                                        "Episodio:" + e.getTitulo() +
+//                                        "Data lancamento: " + e.getDataLancamento().format(formatador)
+//                        ));
+
+                Map<Integer, Double> avaliacoesPorTemporada = episodios.stream()
+                        .filter(e -> e.getAvaliacao() > 0.0)
+                        .collect(Collectors.groupingBy(Episodio::getTemporada,
+                                Collectors.averagingDouble(Episodio::getAvaliacao)));
+
+                System.out.println(avaliacoesPorTemporada);
+
+                DoubleSummaryStatistics est = episodios.stream()
+                        .filter(e -> e.getAvaliacao() > 0.0)
+                        .collect(Collectors.summarizingDouble(Episodio::getAvaliacao));
+                System.out.println("Media da temporada: " + est.getAverage());
+                System.out.println("Melhor episodio: " + est.getMax());
+                System.out.println("Pior episodio: " + est.getMin());
+                System.out.println("Quantidade de episodios: " + est.getCount());
+
 
             } catch (Exception e) {
                 System.out.println("Erro ao pesquisar série: " + e.getMessage());
